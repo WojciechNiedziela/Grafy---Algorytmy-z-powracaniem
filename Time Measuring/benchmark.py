@@ -11,9 +11,9 @@ def create_hamiltonian_cycle_graph(n):
     return G
 
 # Define the range for n values and the step
-n_start = 5
-n_end = 50
-n_step = 5
+n_start = 50
+n_end = 1000
+n_step = 50
 saturation = 30
 operation = "euler"
 

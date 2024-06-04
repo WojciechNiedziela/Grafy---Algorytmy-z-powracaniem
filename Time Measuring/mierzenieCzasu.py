@@ -1,6 +1,4 @@
-# Wybrana reprezentacja: lista sąsiedztwa - najbardziej efektywna, graf spójny, nieskierowany
-
-import argparse, random, copy, sys
+import argparse, random, copy, os, re, time, sys
 
 sys.setrecursionlimit(1000000000)
 
@@ -12,6 +10,16 @@ class Node:
     def __repr__(self): 
         return f"Node({self.val})"
 
+def timer_decorator(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        total_time = time.time() - start_time
+        with open('results.txt', 'a') as f:  
+            f.write(f"{total_time:.6f}\n")
+        return result
+    return wrapper
+
 def create_hamilton_graph(nodes, saturation):
     cycle = [Node(i) for i in range(1, nodes + 1)]
     random.shuffle(cycle)
@@ -19,7 +27,6 @@ def create_hamilton_graph(nodes, saturation):
     for i in range(nodes):
         cycle[i-1].neighbors.append(cycle[i % nodes])
         cycle[i % nodes].neighbors.append(cycle[i-1])
-
 
     edges = nodes * (nodes - 1) // 2
     additional_edges = int(edges * saturation / 100) - nodes
@@ -37,16 +44,6 @@ def create_hamilton_graph(nodes, saturation):
             additional_edges_needed -= 3
 
     return cycle
-
-def print_graph(graph):
-    for node in sorted(graph, key=lambda node: node.val):
-        print(f"Wierzchołek {node.val}: {[neighbor.val for neighbor in node.neighbors]}")
-
-def help():
-    print("Dostępne komendy:")
-    print("  print - wydrukuj graf")
-    print("  help - wyświetl dostępne komendy")
-    print("  exit - zakończ program")
 
 def remove_edge(graph, vNode, uNode):
     for node in graph:
@@ -79,47 +76,45 @@ def DFS_Euler_iterative(start_node, graph):
     eulerCycleResult.reverse()
     return eulerCycleResult
 
+@timer_decorator
 def find_euler_cycle(graph):
     return DFS_Euler_iterative(graph[0], graph)
 
+def load_graph_from_file(file_path):
+    with open(file_path, 'r') as f:
+        nodes = int(f.readline().strip())
+        saturation = int(f.readline().strip())
+        actions = []
+        for line in f:
+            actions.append(line.strip())
+    
+    graph = create_hamilton_graph(nodes, saturation)
+    return graph, actions
+
 def main():
-    parser = argparse.ArgumentParser() 
-    parser.add_argument("--hamilton", action='store_true') 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--hamilton_time", action='store_true')
     args = parser.parse_args()
 
-    if args.hamilton:
-        while True:
-            nodes = int(input("nodes> "))
-            if nodes % 2 == 0:
-                break
-            else:
-                print("Liczba wierzchołków musi być parzysta, aby każdy wierzchołek był parzystego stopnia. Proszę wprowadzić parzystą liczbę.")
-        while True:
-            saturation = int(input("saturation> "))
-            if saturation in [30, 70]:
-                break
-            else:
-                print("Nieprawidłowe nasycenie. Proszę wprowadzić 30 lub 70.")
-        Graph = create_hamilton_graph(nodes, saturation)
+    if args.hamilton_time:
+        data_folder = 'data'
+        files = os.listdir(data_folder)
+        files = sorted(files, key=lambda f: int(re.search(r'graph_(\d+)', f).group(1)))
 
-        while True:
-            print("> ", end="")
-            action = input().strip()
-            if action.lower() == "print":
-                print_graph(Graph)
-            elif action.lower() == "help":
-                help()
-            elif action.lower() == "exit":
-                break
-            elif action.lower() == "euler":
-                Graph_tmp = copy.deepcopy(Graph)
-                euler_cycle = find_euler_cycle(Graph_tmp)
-                if euler_cycle:
-                        print(" -> ".join(map(str, euler_cycle)))
+        for filename in files:
+            file_path = os.path.join(data_folder, filename)
+            graph, actions = load_graph_from_file(file_path)
+            print(f"Loaded graph from {filename}:")
+
+            while actions:
+                action = actions.pop(0)
+                if action.lower() == "exit":
+                    break
+                elif action.lower() == "euler":
+                    graph_tmp = copy.deepcopy(graph)
+                    find_euler_cycle(graph_tmp)
                 else:
-                    print("Graf nie posiada cyklu Eulera.")
-            else:
-                print("Nieznana komenda. Dostępne komendy to: print, help, exit.")
+                    print(f"Nieznana komenda: {action}")
 
 if __name__ == "__main__":
     main()
