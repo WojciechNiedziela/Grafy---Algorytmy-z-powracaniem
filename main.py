@@ -1,44 +1,52 @@
-# Wybrana reprezentacja: lista sąsiedztwa
+# Wybrana reprezentacja: lista sąsiedztwa - najbardziej efektywna, graf spójny, nieskierowany
 # TODO:
 #
-#
-#
+# - clean code
+# nie usuwac przy eulerze krawedzi z grafu
 
-import argparse
-import random
+import argparse, random
 
 class Node:
     def __init__(self, key):
         self.val = key
         self.neighbors = []
 
-def create_hamilton_graph(nodes, saturation):
-    # Tworzenie cyklu Hamiltona
-    cycle = [Node(i) for i in range(nodes)]
-    random.shuffle(cycle)
-    for i in range(nodes):
-        cycle[i-1].neighbors.append(cycle[i])
-        cycle[i].neighbors.append(cycle[i-1])
+    def __repr__(self):  # Definicja metody __repr__ dla klasy Node
+        return f"Node({self.val})"
 
-    # Build a list of all possible edges that could be added
-    possible_edges = [(u, v) for u in range(nodes) for v in range(u+1, nodes)]
-    random.shuffle(possible_edges)
+def create_hamilton_graph(nodes, saturation):
+    cycle = [Node(i) for i in range(1, nodes + 1)]
+    random.shuffle(cycle)
+    
+    # Tworzenie cyklu Hamiltona
+    for i in range(nodes):
+        cycle[i-1].neighbors.append(cycle[i % nodes])
+        cycle[i % nodes].neighbors.append(cycle[i-1])
 
     # Dodawanie dodatkowych krawędzi do grafu
     edges = nodes * (nodes - 1) // 2
     additional_edges = int(edges * saturation / 100) - nodes
-    for u, v in possible_edges:
-        if len(cycle[u].neighbors) % 2 == 0 and len(cycle[v].neighbors) % 2 == 0:
-            cycle[u].neighbors.append(cycle[v])
-            cycle[v].neighbors.append(cycle[u])
-            additional_edges -= 1
-            if additional_edges == 0:
-                break
+    if additional_edges % 2 != 0:
+        additional_edges += 1  # Upewniamy się, że liczba dodatkowych krawędzi jest parzysta
+    additional_edges_needed = additional_edges
+
+    while additional_edges_needed > 0:
+        a, b, c = random.sample(cycle, 3)
+        # Sprawdzamy, czy nie istnieją krawędzie między a, b i c
+        if b not in a.neighbors and c not in a.neighbors and a not in b.neighbors and c not in b.neighbors and a not in c.neighbors and b not in c.neighbors:
+            # Dodajemy krawędzie a-b, b-c i c-a
+            a.neighbors.append(b)
+            b.neighbors.append(a)
+            b.neighbors.append(c)
+            c.neighbors.append(b)
+            c.neighbors.append(a)
+            a.neighbors.append(c)
+            additional_edges_needed -= 3  # Zmniejszamy liczbę potrzebnych krawędzi o 3
 
     return cycle
 
 def print_graph(graph):
-    for node in graph:
+    for node in sorted(graph, key=lambda node: node.val):
         print(f"Wierzchołek {node.val}: {[neighbor.val for neighbor in node.neighbors]}")
 
 def help():
@@ -47,54 +55,64 @@ def help():
     print("  help - wyświetl dostępne komendy")
     print("  exit - zakończ program")
 
-def find_euler_cycle(graph):
-    # Sprawdź, czy wszystkie wierzchołki mają parzysty stopień
+def remove_edge(graph, v, u):
     for node in graph:
-        if len(node.neighbors) % 2 != 0:
-            return None  # Graf nie ma cyklu Eulera
+        if node.val == v.val and u in node.neighbors:
+            node.neighbors.remove(u)
+        if node.val == u.val and v in node.neighbors:
+            node.neighbors.remove(v)
 
-    # Stos do przechowywania aktualnej ścieżki
-    stack = [graph[0]]
-    # Lista do przechowywania cyklu Eulera
+def DFS_Euler(v, graph, cycle, visited_edges):
+    for u in v.neighbors[:]:  # Kopia listy sąsiedztwa, aby uniknąć modyfikacji podczas iteracji
+        if (v, u) not in visited_edges:
+            visited_edges.add((v, u))  # Oznaczam krawędź jako odwiedzoną
+            visited_edges.add((u, v))  # Dodaję krawędź w obu kierunkach, ponieważ graf jest nieskierowany
+            remove_edge(graph, v, u) 
+            DFS_Euler(u, graph, cycle, visited_edges)
+    cycle.append(v.val)  # v na stos
+
+def find_euler_cycle(graph):
     cycle = []
-
-    while stack:
-        current_node = stack[-1]
-        # Jeśli bieżący wierzchołek ma sąsiadów, przenieś go na stos
-        if current_node.neighbors:
-            stack.append(current_node.neighbors.pop())
-        # Jeśli bieżący wierzchołek nie ma sąsiadów, dodaj go do cyklu Eulera
-        else:
-            cycle.append(stack.pop())
-
-    return cycle
+    visited_edges = set()
+    DFS_Euler(graph[0], graph, cycle, visited_edges)  # Rozpocznij DFS od pierwszego wierzchołka
+    return cycle[::-1]  # Odwróć cykl, aby zacząć od początkowego wierzchołka
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--hamilton", action='store_true')
+    parser = argparse.ArgumentParser() 
+    parser.add_argument("--hamilton", action='store_true') 
     args = parser.parse_args()
 
     if args.hamilton:
-        nodes = int(input("nodes> "))
+        while True:
+            nodes = int(input("nodes> "))
+            if nodes % 2 == 0:
+                break
+            else:
+                print("Liczba wierzchołków musi być parzysta, aby każdy wierzchołek był parzystego stopnia. Proszę wprowadzić parzystą liczbę.")
         while True:
             saturation = int(input("saturation> "))
             if saturation in [30, 70]:
                 break
             else:
                 print("Nieprawidłowe nasycenie. Proszę wprowadzić 30 lub 70.")
-        G = create_hamilton_graph(nodes, saturation)
+        Graph = create_hamilton_graph(nodes, saturation)
 
         while True:
             print("> ", end="")
             action = input().strip()
             if action.lower() == "print":
-                print_graph(G)
+                print_graph(Graph)
             elif action.lower() == "help":
                 help()
             elif action.lower() == "exit":
                 break
             elif action.lower() == "euler":
-                find_euler_cycle(G)
+                Graph_tmp = Graph.copy()
+                euler_cycle = find_euler_cycle(Graph_tmp)
+                if euler_cycle:
+                        print(" -> ".join(map(str, euler_cycle)))
+                else:
+                    print("Graf nie posiada cyklu Eulera.")
             else:
                 print("Nieznana komenda. Dostępne komendy to: print, help, exit.")
 
