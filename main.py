@@ -1,17 +1,13 @@
 # Wybrana reprezentacja: lista sąsiedztwa - najbardziej efektywna, graf spójny, nieskierowany
-# TODO:
-#
-# - clean code
-# nie usuwac przy eulerze krawedzi z grafu
 
-import argparse, random
+import argparse, random, copy
 
 class Node:
     def __init__(self, key):
         self.val = key
         self.neighbors = []
 
-    def __repr__(self):  # Definicja metody __repr__ dla klasy Node
+    def __repr__(self): 
         return f"Node({self.val})"
 
 def create_hamilton_graph(nodes, saturation):
@@ -55,27 +51,28 @@ def help():
     print("  help - wyświetl dostępne komendy")
     print("  exit - zakończ program")
 
-def remove_edge(graph, v, u):
+def remove_edge(graph, vNode, uNode):
     for node in graph:
-        if node.val == v.val and u in node.neighbors:
-            node.neighbors.remove(u)
-        if node.val == u.val and v in node.neighbors:
-            node.neighbors.remove(v)
+        if node.val == vNode.val and uNode in node.neighbors:
+            node.neighbors.remove(uNode)
+        if node.val == uNode.val and vNode in node.neighbors:
+            node.neighbors.remove(vNode)
 
-def DFS_Euler(v, graph, cycle, visited_edges):
-    for u in v.neighbors[:]:  # Kopia listy sąsiedztwa, aby uniknąć modyfikacji podczas iteracji
-        if (v, u) not in visited_edges:
-            visited_edges.add((v, u))  # Oznaczam krawędź jako odwiedzoną
-            visited_edges.add((u, v))  # Dodaję krawędź w obu kierunkach, ponieważ graf jest nieskierowany
-            remove_edge(graph, v, u) 
-            DFS_Euler(u, graph, cycle, visited_edges)
-    cycle.append(v.val)  # v na stos
+def DFS_Euler(vNode, graph, eulerCycleResult, visited_edges):
+    for uNode in vNode.neighbors[:]:
+        if (vNode, uNode) not in visited_edges:
+            visited_edges.add((vNode, uNode))  
+            visited_edges.add((uNode, vNode)) 
+            remove_edge(graph, vNode, uNode) 
+            DFS_Euler(uNode, graph, eulerCycleResult, visited_edges)
+    eulerCycleResult.append(vNode.val) 
 
 def find_euler_cycle(graph):
-    cycle = []
+    eulerCycleResult = []
     visited_edges = set()
-    DFS_Euler(graph[0], graph, cycle, visited_edges)  # Rozpocznij DFS od pierwszego wierzchołka
-    return cycle[::-1]  # Odwróć cykl, aby zacząć od początkowego wierzchołka
+    DFS_Euler(graph[0], graph, eulerCycleResult, visited_edges) 
+    eulerCycleResult.reverse()  
+    return eulerCycleResult
 
 def main():
     parser = argparse.ArgumentParser() 
@@ -107,7 +104,7 @@ def main():
             elif action.lower() == "exit":
                 break
             elif action.lower() == "euler":
-                Graph_tmp = Graph.copy()
+                Graph_tmp = copy.deepcopy(Graph)
                 euler_cycle = find_euler_cycle(Graph_tmp)
                 if euler_cycle:
                         print(" -> ".join(map(str, euler_cycle)))
