@@ -96,6 +96,8 @@ class Graph:
         return eulerCycleResult
 
     def find_euler_cycle(self):
+        if any(len(node.neighbors) % 2 != 0 for node in self.nodes):
+            return None
         return self.DFS_Euler_iterative(self.nodes[0])
 
     def find_hamiltonian_cycle(self):
