@@ -1,4 +1,6 @@
-import argparse, copy, sys
+import argparse
+import copy
+import sys
 import Graph_class as Graph_class
 
 Graph = Graph_class.Graph
@@ -14,6 +16,17 @@ def help():
     print("  export     -       wyeksportuj graf do TikZ")
     print("  exit       -       zakończ program")
 
+def get_valid_int(prompt, validation_fn=None, error_message="Nieprawidłowa wartość."):
+    while True:
+        try:
+            value = int(input(prompt))
+            if validation_fn and not validation_fn(value):
+                print(error_message)
+                continue
+            return value
+        except ValueError:
+            print(error_message)
+
 def main():
     parser = argparse.ArgumentParser() 
     parser.add_argument("--hamilton", action='store_true')
@@ -21,48 +34,37 @@ def main():
     args = parser.parse_args()
 
     if args.hamilton or args.non_hamilton:
-        while True:
-            nodes = int(input("nodes> "))
-            if nodes % 2 == 0:
-                break
-            else:
-                print("Liczba wierzchołków musi być parzysta, aby każdy wierzchołek był parzystego stopnia. Proszę wprowadzić parzystą liczbę.")
-
+        nodes = get_valid_int("nodes> ", lambda x: x % 2 == 0, "Liczba wierzchołków musi być parzysta, aby każdy wierzchołek był parzystego stopnia. Proszę wprowadzić parzystą liczbę.")
+        
         if args.hamilton:
-            while True:
-                saturation = int(input("saturation> "))
-                if saturation in [30, 70]:
-                    break
-                else:
-                    print("Nieprawidłowe nasycenie. Proszę wprowadzić 30 lub 70.")
+            saturation = get_valid_int("saturation> ", lambda x: x in [30, 70], "Nieprawidłowe nasycenie. Proszę wprowadzić 30 lub 70.")
             graph = Graph(nodes, saturation)
         
         elif args.non_hamilton:
             graph = Graph(nodes, 50, is_hamiltonian=False)
 
         while True:
-            print("action> ", end="")
-            action = input().strip()
-            if action.lower() == "print":
+            action = input("action> ").strip().lower()
+            if action == "print":
                 graph.print_graph()
-            elif action.lower() == "help":
+            elif action == "help":
                 help()
-            elif action.lower() == "exit":
+            elif action == "exit":
                 break
-            elif action.lower() == "euler":
+            elif action == "euler":
                 graph_tmp = copy.deepcopy(graph)
                 euler_cycle = graph_tmp.find_euler_cycle()
                 if euler_cycle:
                     print(" -> ".join(map(str, euler_cycle)))
                 else:
                     print("Graf nie posiada cyklu Eulera.")
-            elif action.lower() == "hamilton":
+            elif action == "hamilton":
                 hamilton_cycle = graph.find_hamiltonian_cycle()
                 if hamilton_cycle:
                     print(" -> ".join(map(str, hamilton_cycle)))
                 else:
                     print("Graf nie posiada cyklu Hamiltona.")
-            elif action.lower() == "export":
+            elif action == "export":
                 tikz = graph.export_to_tikz()
                 with open("graph.tex", "w") as f:
                     f.write(tikz)
