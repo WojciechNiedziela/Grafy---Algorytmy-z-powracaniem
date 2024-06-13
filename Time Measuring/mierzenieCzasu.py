@@ -26,6 +26,10 @@ def main():
                     break
                 elif action.lower() == "euler":
                     graph.find_euler_cycle()
+                elif action.lower() == "hamilton":
+                    graph.find_hamiltonian_cycle()
+                elif action.lower() == "print": 
+                    graph.print_graph()
                 else:
                     print(f"Nieznana komenda: {action}")
 

@@ -1,0 +1,5 @@
+51
+30
+print
+hamilton
+exit

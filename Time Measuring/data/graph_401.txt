@@ -1,0 +1,4 @@
+401
+30
+hamilton
+exit

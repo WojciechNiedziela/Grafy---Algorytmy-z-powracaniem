@@ -1,0 +1,4 @@
+351
+30
+hamilton
+exit

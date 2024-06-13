@@ -6,7 +6,7 @@ Node = Node_time_class.Node
 
 class Graph:
     def __init__(self):
-        self.graph = []
+        self.nodes = []
 
     def timer_decorator(func):
         def wrapper(*args, **kwargs):
@@ -19,19 +19,19 @@ class Graph:
         return wrapper
 
     def create_hamilton_graph(self, nodes, saturation):
-        cycle = [Node(i) for i in range(1, nodes + 1)]
-        random.shuffle(cycle)
+        self.nodes = [Node(i) for i in range(1, nodes + 1)]
+        random.shuffle(self.nodes)
 
         for i in range(nodes):
-            cycle[i-1].neighbors.append(cycle[i % nodes])
-            cycle[i % nodes].neighbors.append(cycle[i-1])
+            self.nodes[i-1].neighbors.append(self.nodes[i % nodes])
+            self.nodes[i % nodes].neighbors.append(self.nodes[i-1])
 
         edges = nodes * (nodes - 1) // 2
         additional_edges = int(edges * saturation / 100) - nodes
         additional_edges_needed = additional_edges
 
         while additional_edges_needed > 0:
-            NodeA, NodeB, NodeC = random.sample(cycle, 3)
+            NodeA, NodeB, NodeC = random.sample(self.nodes, 3)
             if (NodeB not in NodeA.neighbors and NodeC not in NodeA.neighbors and 
                 NodeA not in NodeB.neighbors and NodeC not in NodeB.neighbors and 
                 NodeA not in NodeC.neighbors and NodeB not in NodeC.neighbors):
@@ -43,10 +43,8 @@ class Graph:
                 NodeA.neighbors.append(NodeC)
                 additional_edges_needed -= 3
 
-        self.graph = cycle
-
     def remove_edge(self, vNode, uNode):
-        for node in self.graph:
+        for node in self.nodes:
             if node.val == vNode.val and uNode in node.neighbors:
                 node.neighbors.remove(uNode)
             if node.val == uNode.val and vNode in node.neighbors:
@@ -78,7 +76,7 @@ class Graph:
 
     @timer_decorator
     def find_euler_cycle(self):
-        return self.DFS_Euler_iterative(self.graph[0])
+        return self.DFS_Euler_iterative(self.nodes[0])
 
     def load_graph_from_file(self, file_path):
         with open(file_path, 'r') as f:
@@ -90,3 +88,29 @@ class Graph:
 
         self.create_hamilton_graph(nodes, saturation)
         return actions
+
+    @timer_decorator
+    def find_hamiltonian_cycle(self):
+        path = []
+
+        def backtrack(current_node):
+            if len(path) == len(self.nodes):
+                return path[0] in current_node.neighbors
+            for neighbor in current_node.neighbors:
+                if neighbor not in path:
+                    path.append(neighbor)
+                    if backtrack(neighbor):
+                        return True
+                    path.pop()
+            return False
+
+        for node in self.nodes:
+            path = [node]
+            if backtrack(node):
+                return [n.val for n in path]
+        return None
+
+    def print_graph(self):
+        print("###################################")
+        for node in sorted(self.nodes, key=lambda node: node.val):
+            print(f"Wierzchołek {node.val}: {[neighbor.val for neighbor in node.neighbors]}")

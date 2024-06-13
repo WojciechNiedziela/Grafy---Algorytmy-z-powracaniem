@@ -4,11 +4,11 @@ base_directory = os.path.join('Time measuring', 'data')
 os.makedirs(base_directory, exist_ok=True)
 
 ###########################################################################
-n_start = 50
+n_start = 1
 n_end = 1000
 n_step = 50
 saturation = 30
-operation = "euler"
+operation = "hamilton"
 ###########################################################################
 n_values = range(n_start, n_end + 1, n_step)
 
